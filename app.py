@@ -7,71 +7,129 @@ class LibraryApp(customtkinter.CTk):
     def __init__(self):
         super().__init__()
         self.title("Library Management System")
-        self.geometry("1200x600")
+        self.geometry("1400x800")
 
-        # Define button colors
-        self.BUTTON_NORMAL_COLOR = "#2980b9"    # Normal blue color
-        self.BUTTON_SELECTED_COLOR = "#1abc9c"   # Highlighted teal color
-
-        # Configure grid weights for proper resizing
+        # Configure grid weights
         self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)  # Main frame gets more space
-        self.grid_columnconfigure(0, weight=0)  # Sidebar doesn't need to expand
+        self.grid_columnconfigure(1, weight=1)
 
-        # Sidebar for table navigation and CRUD buttons
-        self.sidebar_frame = customtkinter.CTkFrame(self, width=250, corner_radius=10, fg_color="#2c3e50")
-        self.sidebar_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        # Sidebar with better styling and fixed width
+        self.sidebar_frame = customtkinter.CTkFrame(self, width=200, corner_radius=0, fg_color="#2c3e50")
+        self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_frame.grid_columnconfigure(0, weight=1)  # Center the content horizontally
+        self.sidebar_frame.grid_propagate(False)
+
+        # Create a scrollable frame for the sidebar content
+        self.sidebar_content = customtkinter.CTkFrame(self.sidebar_frame, fg_color="transparent")
+        self.sidebar_content.grid(row=0, column=0, sticky="n")
+        self.sidebar_content.grid_columnconfigure(0, weight=1)  # Center the content horizontally
+
+        # App title in sidebar with word wrap
+        self.logo_label = customtkinter.CTkLabel(
+            self.sidebar_content, 
+            text="Library\nManagement",
+            font=customtkinter.CTkFont(size=18, weight="bold"),
+            text_color="#ecf0f1"
+        )
+        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 20))
+
+        # Section label for tables
+        self.tables_label = customtkinter.CTkLabel(
+            self.sidebar_content,
+            text="TABLES",
+            font=customtkinter.CTkFont(size=14, weight="bold"),
+            text_color="#95a5a6"
+        )
+        self.tables_label.grid(row=1, column=0, padx=20, pady=(0, 5), sticky="w")
+
+        # Sidebar buttons for switching between tables with categories
+        table_categories = {
+            "Users": ["Admins", "Members"],
+            "Content": ["Books", "Authors", "Publishers", "Genres"],
+            "Transactions": ["Loans", "Reservations", "Fines"]
+        }
+
+        current_row = 2
+        self.table_buttons = {}
         
-        # Main frame with proper expansion
+        for category, tables in table_categories.items():
+            # Category label
+            category_label = customtkinter.CTkLabel(
+                self.sidebar_content,
+                text=category.upper(),
+                font=customtkinter.CTkFont(size=12),
+                text_color="#7f8c8d"
+            )
+            category_label.grid(row=current_row, column=0, padx=20, pady=(10, 5), sticky="w")
+            current_row += 1
+
+            # Table buttons for this category
+            for table in tables:
+                btn = customtkinter.CTkButton(
+                    self.sidebar_content,
+                    text=table,
+                    height=32,
+                    width=160,
+                    corner_radius=5,
+                    command=lambda t=table: self.switch_table(t),
+                    fg_color="#2980b9",
+                    hover_color="#3498db",
+                    anchor="center"
+                )
+                btn.grid(row=current_row, column=0, padx=20, pady=3)
+                self.table_buttons[table] = btn
+                current_row += 1
+
+        # CRUD buttons at the bottom with a separator
+        separator = customtkinter.CTkFrame(self.sidebar_content, height=2, fg_color="#34495e")
+        separator.grid(row=current_row, column=0, sticky="ew", padx=20, pady=(20, 10))
+
+        # CRUD Buttons - Stacked vertically
+        self.create_btn = customtkinter.CTkButton(
+            self.sidebar_content,
+            text="Create",
+            command=self.create_record,
+            height=35,
+            width=160,
+            corner_radius=5,
+            fg_color="#27ae60",
+            hover_color="#2ecc71"
+        )
+        self.create_btn.grid(row=current_row + 1, column=0, padx=20, pady=5)
+
+        self.update_btn = customtkinter.CTkButton(
+            self.sidebar_content,
+            text="Update",
+            command=self.update_record,
+            height=35,
+            width=160,
+            corner_radius=5,
+            fg_color="#f39c12",
+            hover_color="#f1c40f"
+        )
+        self.update_btn.grid(row=current_row + 2, column=0, padx=20, pady=5)
+
+        self.delete_btn = customtkinter.CTkButton(
+            self.sidebar_content,
+            text="Delete",
+            command=self.delete_record,
+            height=35,
+            width=160,
+            corner_radius=5,
+            fg_color="#e74c3c",
+            hover_color="#c0392b"
+        )
+        self.delete_btn.grid(row=current_row + 3, column=0, padx=20, pady=5)
+
+        # Main content frame
         self.main_frame = customtkinter.CTkFrame(self)
         self.main_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
-        self.main_frame.grid_rowconfigure(1, weight=1)  # Row for table
-        self.main_frame.grid_columnconfigure(0, weight=1)  # Column for table
 
-        # Sidebar buttons for switching between tables
-        table_names = ["Admins", "Members", "Publishers", "Authors", "Genres", "Books", "Loans", "Fines", "Reservations"]
-        self.table_buttons = {}
-        for idx, table in enumerate(table_names):
-            btn = customtkinter.CTkButton(
-                self.sidebar_frame, text=table, height=40, corner_radius=5, 
-                command=lambda t=table: self.switch_table(t), fg_color=self.BUTTON_NORMAL_COLOR
-            )
-            btn.grid(row=idx, column=0, padx=10, pady=5, sticky="ew")
-            self.table_buttons[table] = btn
-
-        # CRUD buttons
-        self.crud_button_frame = customtkinter.CTkFrame(self.sidebar_frame)
-        self.crud_button_frame.grid(row=len(table_names), column=0, padx=10, pady=20, sticky="ew")
-
-        self.create_btn = customtkinter.CTkButton(self.crud_button_frame, text="Create", command=self.create_record, height=40, corner_radius=5, fg_color="#27ae60")
-        self.create_btn.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
-
-        self.update_btn = customtkinter.CTkButton(self.crud_button_frame, text="Update", command=self.update_record, height=40, corner_radius=5, fg_color="#f39c12")
-        self.update_btn.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
-
-        self.delete_btn = customtkinter.CTkButton(self.crud_button_frame, text="Delete", command=self.delete_record, height=40, corner_radius=5, fg_color="#e74c3c")
-        self.delete_btn.grid(row=0, column=2, padx=10, pady=5, sticky="ew")
-
-        # Initialize main display
+        # Initialize current table and load default
         self.current_table = None
-        self.form_entries = {}
-
-        # Load default table
-        self.load_table_data("Books")
+        self.switch_table("Books")
 
     def switch_table(self, table_name):
-        """Switches to the selected table and updates button highlighting"""
-        # Reset all buttons to normal color
-        for btn in self.table_buttons.values():
-            btn.configure(fg_color=self.BUTTON_NORMAL_COLOR)
-        
-        # Highlight the selected button
-        self.table_buttons[table_name].configure(fg_color=self.BUTTON_SELECTED_COLOR)
-        
-        # Load the table data
-        self.load_table_data(table_name)
-
-    def load_table_data(self, table_name):
         """Loads and displays data for a specified table."""
         self.current_table = table_name
         columns, data = fetch_all_data(table_name)
@@ -87,11 +145,6 @@ class LibraryApp(customtkinter.CTk):
         if data:
             table_frame = create_table_display(self.main_frame, data, columns)
             table_frame.pack(fill="both", expand=True)
-
-        # Update button highlighting
-        for btn in self.table_buttons.values():
-            btn.configure(fg_color=self.BUTTON_NORMAL_COLOR)
-        self.table_buttons[table_name].configure(fg_color=self.BUTTON_SELECTED_COLOR)
 
     def create_search_bar(self):
         """Creates the search bar at the top of the main frame"""
@@ -117,7 +170,7 @@ class LibraryApp(customtkinter.CTk):
             search_frame,
             text="Clear",
             width=100,
-            command=lambda: self.load_table_data(self.current_table)
+            command=lambda: self.switch_table(self.current_table)
         )
         clear_button.pack(side="left", padx=5)
 
@@ -195,7 +248,7 @@ class LibraryApp(customtkinter.CTk):
             )
             success_label.pack()
             form_window.after(1500, form_window.destroy)
-            self.load_table_data(self.current_table)
+            self.switch_table(self.current_table)
 
         except Exception as e:
             # Show error in a contained frame
@@ -274,7 +327,7 @@ class LibraryApp(customtkinter.CTk):
             success_label = customtkinter.CTkLabel(window, text="Record updated successfully!", fg_color="green")
             success_label.grid(row=len(form_entries) + 1, column=0, columnspan=2)
             window.after(1500, window.destroy)
-            self.load_table_data(self.current_table)
+            self.switch_table(self.current_table)
             
         except Exception as e:
             # Show error message in the form window
@@ -304,7 +357,7 @@ class LibraryApp(customtkinter.CTk):
             
             # Perform the deletion
             delete_data(self.current_table, condition)
-            self.load_table_data(self.current_table)
+            self.switch_table(self.current_table)
             print("Record deleted successfully!")
             
         except Exception as e:
