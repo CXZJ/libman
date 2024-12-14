@@ -55,10 +55,41 @@ class LibraryApp(customtkinter.CTk):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
+        # Create search bar
+        self.create_search_bar()
+
         # Display table
         if data:
             table_frame = create_table_display(self.main_frame, data, columns)
             table_frame.pack(fill="both", expand=True)
+
+    def create_search_bar(self):
+        """Creates the search bar at the top of the main frame"""
+        search_frame = customtkinter.CTkFrame(self.main_frame)
+        search_frame.pack(fill="x", padx=10, pady=5)
+        
+        search_entry = customtkinter.CTkEntry(
+            search_frame, 
+            placeholder_text="Search...",
+            width=300
+        )
+        search_entry.pack(side="left", padx=5)
+        
+        search_button = customtkinter.CTkButton(
+            search_frame,
+            text="Search",
+            width=100,
+            command=lambda: self.search_records(search_entry.get())
+        )
+        search_button.pack(side="left", padx=5)
+        
+        clear_button = customtkinter.CTkButton(
+            search_frame,
+            text="Clear",
+            width=100,
+            command=lambda: self.load_table_data(self.current_table)
+        )
+        clear_button.pack(side="left", padx=5)
 
     def create_record(self):
         """Opens a new form window for creating a record for the current table."""
@@ -262,3 +293,29 @@ class LibraryApp(customtkinter.CTk):
         # If we get here, either no selection was made or no table exists
         print("Please select a record first.")
         return None
+
+    def search_records(self, search_term):
+        """Filter table data based on search term"""
+        if not self.current_table or not search_term:
+            return
+        
+        columns, all_data = fetch_all_data(self.current_table)
+        
+        # Filter data based on search term (case-insensitive)
+        filtered_data = []
+        search_term = search_term.lower()
+        for record in all_data:
+            if any(str(value).lower().find(search_term) != -1 for value in record):
+                filtered_data.append(record)
+        
+        # Clear previous widgets
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+        
+        # Create search bar
+        self.create_search_bar()
+        
+        # Display filtered results
+        if filtered_data:
+            table_frame = create_table_display(self.main_frame, filtered_data, columns)
+            table_frame.pack(fill="both", expand=True)
