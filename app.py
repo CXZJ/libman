@@ -2,12 +2,17 @@ import customtkinter
 from tkinter import ttk  # Assuming Treeview from tkinter
 from crud_operations import fetch_all_data, insert_data, update_data, delete_data
 from ui_components import create_table_display
+import sys
 
 class LibraryApp(customtkinter.CTk):
     def __init__(self):
         super().__init__()
         self.title("Library Management System")
         self.geometry("1400x800")
+
+        # Define color constants
+        self.BUTTON_NORMAL_COLOR = "#2980b9"    # Normal blue color
+        self.BUTTON_SELECTED_COLOR = "#1abc9c"   # Highlighted teal color
 
         # Configure grid weights
         self.grid_rowconfigure(0, weight=1)
@@ -131,6 +136,13 @@ class LibraryApp(customtkinter.CTk):
 
     def switch_table(self, table_name):
         """Loads and displays data for a specified table."""
+        # Reset all buttons to normal color
+        for btn in self.table_buttons.values():
+            btn.configure(fg_color=self.BUTTON_NORMAL_COLOR)
+        
+        # Highlight the selected button
+        self.table_buttons[table_name].configure(fg_color=self.BUTTON_SELECTED_COLOR)
+        
         self.current_table = table_name
         columns, data = fetch_all_data(table_name)
 
@@ -180,52 +192,146 @@ class LibraryApp(customtkinter.CTk):
             return
 
         form_window = customtkinter.CTkToplevel(self)
-        form_window.title(f"Create Record for {self.current_table}")
-        form_window.geometry("800x600")  # Wider window to accommodate lookups
+        form_window.title(f"Create New {self.current_table}")
+        form_window.geometry("500x600")
 
-        # Create main container frames
-        left_frame = customtkinter.CTkFrame(form_window)
-        left_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
-        
-        # Create scrollable frame for form
-        canvas = customtkinter.CTkCanvas(left_frame, height=400)
-        scrollbar = ttk.Scrollbar(left_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = customtkinter.CTkFrame(canvas)
+        # Create main container frame with padding
+        main_frame = customtkinter.CTkFrame(form_window)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        # Title
+        title_label = customtkinter.CTkLabel(
+            main_frame,
+            text=f"Create New {self.current_table}",
+            font=customtkinter.CTkFont(size=20, weight="bold")
         )
+        title_label.pack(pady=(0, 20))
 
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
+        # Create scrollable frame
+        scroll_frame = customtkinter.CTkScrollableFrame(main_frame)
+        scroll_frame.pack(fill="both", expand=True)
 
-        scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True)
+        # Bind mouse wheel event for scrolling (platform-specific)
+        if sys.platform.startswith('darwin'):  # macOS
+            scroll_frame.bind('<MouseWheel>', lambda e: scroll_frame._parent_canvas.yview_scroll(-int(e.delta), "units"))
+        else:  # Windows and Linux
+            scroll_frame.bind_all("<MouseWheel>", lambda e: scroll_frame._parent_canvas.yview_scroll(-int(e.delta/120), "units"))
+            form_window.bind("<Destroy>", lambda e: scroll_frame.unbind_all("<MouseWheel>"))
 
         columns, _ = fetch_all_data(self.current_table)
-        
         entry_widgets = {}
-        
+
         # Create form fields
-        for idx, column in enumerate(columns):
-            label = customtkinter.CTkLabel(scrollable_frame, text=column)
-            label.grid(row=idx, column=0, padx=10, pady=5, sticky="e")
-            
-            entry = customtkinter.CTkEntry(scrollable_frame, width=200)
-            entry.grid(row=idx, column=1, padx=10, pady=5)
+        for column in columns:
+            # Container for each field
+            field_frame = customtkinter.CTkFrame(scroll_frame, fg_color="transparent")
+            field_frame.pack(fill="x", pady=5)
+
+            label = customtkinter.CTkLabel(
+                field_frame,
+                text=column,
+                font=customtkinter.CTkFont(size=12)
+            )
+            label.pack(side="top", anchor="w", padx=5)
+
+            entry = customtkinter.CTkEntry(field_frame, width=400)
+            entry.pack(side="top", fill="x", padx=5)
             entry_widgets[column] = entry
 
-        # Submit button at the bottom
-        submit_frame = customtkinter.CTkFrame(form_window)
-        submit_frame.pack(side="bottom", fill="x", padx=10, pady=10)
-        
+        # Submit button
         submit_btn = customtkinter.CTkButton(
-            submit_frame,
-            text="Submit",
-            command=lambda: self.submit_create_form(entry_widgets, form_window)
+            main_frame,
+            text="Create Record",
+            command=lambda: self.submit_create_form(entry_widgets, form_window),
+            fg_color="#27ae60",
+            hover_color="#2ecc71",
+            height=40
         )
-        submit_btn.pack(pady=5)
+        submit_btn.pack(pady=20)
+
+    def update_record(self):
+        """Displays a form for updating a record."""
+        if not self.current_table:
+            return
+
+        selected_record = self.get_selected_record()
+        if not selected_record:
+            return
+
+        update_window = customtkinter.CTkToplevel(self)
+        update_window.title(f"Update {self.current_table}")
+        update_window.geometry("500x600")
+
+        # Create main container frame with padding
+        main_frame = customtkinter.CTkFrame(update_window)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Title
+        title_label = customtkinter.CTkLabel(
+            main_frame,
+            text=f"Update {self.current_table}",
+            font=customtkinter.CTkFont(size=20, weight="bold")
+        )
+        title_label.pack(pady=(0, 20))
+
+        # Create scrollable frame
+        scroll_frame = customtkinter.CTkScrollableFrame(main_frame)
+        scroll_frame.pack(fill="both", expand=True)
+
+        # Bind mouse wheel event for scrolling (platform-specific)
+        if sys.platform.startswith('darwin'):  # macOS
+            scroll_frame.bind('<MouseWheel>', lambda e: scroll_frame._parent_canvas.yview_scroll(-int(e.delta), "units"))
+        else:  # Windows and Linux
+            scroll_frame.bind_all("<MouseWheel>", lambda e: scroll_frame._parent_canvas.yview_scroll(-int(e.delta/120), "units"))
+            update_window.bind("<Destroy>", lambda e: scroll_frame.unbind_all("<MouseWheel>"))
+
+        columns, _ = fetch_all_data(self.current_table)
+        form_entries = {}
+
+        # Create form fields
+        for i, column in enumerate(columns):
+            # Container for each field
+            field_frame = customtkinter.CTkFrame(scroll_frame, fg_color="transparent")
+            field_frame.pack(fill="x", pady=5)
+
+            label = customtkinter.CTkLabel(
+                field_frame,
+                text=column,
+                font=customtkinter.CTkFont(size=12)
+            )
+            label.pack(side="top", anchor="w", padx=5)
+
+            entry = customtkinter.CTkEntry(field_frame, width=400)
+            entry.insert(0, selected_record[i])
+            entry.pack(side="top", fill="x", padx=5)
+            form_entries[column] = entry
+
+        # Submit button
+        submit_btn = customtkinter.CTkButton(
+            main_frame,
+            text="Update Record",
+            command=lambda: self.submit_update_form(form_entries, update_window),
+            fg_color="#f39c12",
+            hover_color="#f1c40f",
+            height=40
+        )
+        submit_btn.pack(pady=20)
+
+    def show_error_message(self, window, message):
+        """Displays an error message in the form window"""
+        error_frame = customtkinter.CTkFrame(window, fg_color="#e74c3c")
+        error_frame.pack(fill="x", padx=20, pady=5)
+        
+        error_label = customtkinter.CTkLabel(
+            error_frame,
+            text=message,
+            text_color="white",
+            wraplength=350
+        )
+        error_label.pack(pady=10)
+        
+        # Auto-dismiss after 3 seconds
+        window.after(3000, error_frame.destroy)
 
     def submit_create_form(self, entry_widgets, form_window):
         """Handles form submission and data insertion."""
@@ -271,39 +377,6 @@ class LibraryApp(customtkinter.CTk):
                 wraplength=350
             )
             error_label.pack(pady=5)
-
-    def update_record(self):
-        """Displays a form for updating a record."""
-        if not self.current_table:
-            print("No table selected.")
-            return
-
-        selected_record = self.get_selected_record()
-        if not selected_record:
-            print("No record selected for update.")
-            return
-
-        update_window = customtkinter.CTkToplevel(self)
-        update_window.title(f"Update Record in {self.current_table}")
-        update_window.geometry("400x400")
-
-        columns, _ = fetch_all_data(self.current_table)
-        form_entries = {}
-
-        for i, column in enumerate(columns):
-            label = customtkinter.CTkLabel(update_window, text=column)
-            label.grid(row=i, column=0, padx=5, pady=5)
-            entry = customtkinter.CTkEntry(update_window)
-            entry.insert(0, selected_record[i])
-            entry.grid(row=i, column=1, padx=5, pady=5)
-            form_entries[column] = entry
-
-        submit_btn = customtkinter.CTkButton(
-            update_window,
-            text="Submit",
-            command=lambda: self.submit_update_form(form_entries, update_window)
-        )
-        submit_btn.grid(row=len(columns), column=0, columnspan=2, pady=10)
 
     def submit_update_form(self, form_entries, window):
         """Submits the updated data to the database."""
