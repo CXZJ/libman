@@ -1,5 +1,5 @@
 import customtkinter
-from tkinter import ttk  # Assuming Treeview from tkinter
+from tkinter import ttk
 from crud_operations import fetch_all_data, insert_data, update_data, delete_data
 from ui_components import create_table_display
 import sys
@@ -18,18 +18,35 @@ class LibraryApp(customtkinter.CTk):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
-        # Sidebar with better styling and fixed width
+        # Initialize UI Components
+        self._init_sidebar()
+        self._init_main_frame()
+        
+        # Initialize current table and load default
+        self.current_table = None
+        self.switch_table("Books")
+
+    #region SIDEBAR INITIALIZATION
+    def _init_sidebar(self):
+        """Initialize the sidebar and its components"""
+        # Sidebar frame setup
         self.sidebar_frame = customtkinter.CTkFrame(self, width=200, corner_radius=0, fg_color="#2c3e50")
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
-        self.sidebar_frame.grid_columnconfigure(0, weight=1)  # Center the content horizontally
+        self.sidebar_frame.grid_columnconfigure(0, weight=1)
         self.sidebar_frame.grid_propagate(False)
 
         # Create a scrollable frame for the sidebar content
         self.sidebar_content = customtkinter.CTkFrame(self.sidebar_frame, fg_color="transparent")
         self.sidebar_content.grid(row=0, column=0, sticky="n")
-        self.sidebar_content.grid_columnconfigure(0, weight=1)  # Center the content horizontally
+        self.sidebar_content.grid_columnconfigure(0, weight=1)
 
-        # App title in sidebar with word wrap
+        self._create_sidebar_header()
+        self._create_table_buttons()
+        self._create_crud_buttons()
+
+    def _create_sidebar_header(self):
+        """Create the header section of the sidebar"""
+        # App title
         self.logo_label = customtkinter.CTkLabel(
             self.sidebar_content, 
             text="Library\nManagement",
@@ -38,7 +55,7 @@ class LibraryApp(customtkinter.CTk):
         )
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 20))
 
-        # Section label for tables
+        # Tables section label
         self.tables_label = customtkinter.CTkLabel(
             self.sidebar_content,
             text="TABLES",
@@ -47,7 +64,8 @@ class LibraryApp(customtkinter.CTk):
         )
         self.tables_label.grid(row=1, column=0, padx=20, pady=(0, 5), sticky="w")
 
-        # Sidebar buttons for switching between tables with categories
+    def _create_table_buttons(self):
+        """Create the table navigation buttons"""
         table_categories = {
             "Users": ["Admins", "Members"],
             "Content": ["Books", "Authors", "Publishers", "Genres"],
@@ -68,7 +86,7 @@ class LibraryApp(customtkinter.CTk):
             category_label.grid(row=current_row, column=0, padx=20, pady=(10, 5), sticky="w")
             current_row += 1
 
-            # Table buttons for this category
+            # Table buttons
             for table in tables:
                 btn = customtkinter.CTkButton(
                     self.sidebar_content,
@@ -85,54 +103,38 @@ class LibraryApp(customtkinter.CTk):
                 self.table_buttons[table] = btn
                 current_row += 1
 
-        # CRUD buttons at the bottom with a separator
+    def _create_crud_buttons(self):
+        """Create the CRUD operation buttons"""
+        # Separator
         separator = customtkinter.CTkFrame(self.sidebar_content, height=2, fg_color="#34495e")
-        separator.grid(row=current_row, column=0, sticky="ew", padx=20, pady=(20, 10))
+        separator.grid(row=98, column=0, sticky="ew", padx=20, pady=(20, 10))
 
-        # CRUD Buttons - Stacked vertically
-        self.create_btn = customtkinter.CTkButton(
-            self.sidebar_content,
-            text="Create",
-            command=self.create_record,
-            height=35,
-            width=160,
-            corner_radius=5,
-            fg_color="#27ae60",
-            hover_color="#2ecc71"
-        )
-        self.create_btn.grid(row=current_row + 1, column=0, padx=20, pady=5)
+        # CRUD Buttons
+        crud_buttons = [
+            ("Create", self.create_record, "#27ae60", "#2ecc71"),
+            ("Update", self.update_record, "#f39c12", "#f1c40f"),
+            ("Delete", self.delete_record, "#e74c3c", "#c0392b")
+        ]
 
-        self.update_btn = customtkinter.CTkButton(
-            self.sidebar_content,
-            text="Update",
-            command=self.update_record,
-            height=35,
-            width=160,
-            corner_radius=5,
-            fg_color="#f39c12",
-            hover_color="#f1c40f"
-        )
-        self.update_btn.grid(row=current_row + 2, column=0, padx=20, pady=5)
+        for i, (text, command, fg_color, hover_color) in enumerate(crud_buttons):
+            btn = customtkinter.CTkButton(
+                self.sidebar_content,
+                text=text,
+                command=command,
+                height=35,
+                width=160,
+                corner_radius=5,
+                fg_color=fg_color,
+                hover_color=hover_color
+            )
+            btn.grid(row=99+i, column=0, padx=20, pady=5)
+    #endregion
 
-        self.delete_btn = customtkinter.CTkButton(
-            self.sidebar_content,
-            text="Delete",
-            command=self.delete_record,
-            height=35,
-            width=160,
-            corner_radius=5,
-            fg_color="#e74c3c",
-            hover_color="#c0392b"
-        )
-        self.delete_btn.grid(row=current_row + 3, column=0, padx=20, pady=5)
-
-        # Main content frame
+    #region MAIN FRAME AND TABLE MANAGEMENT
+    def _init_main_frame(self):
+        """Initialize the main content frame"""
         self.main_frame = customtkinter.CTkFrame(self)
         self.main_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
-
-        # Initialize current table and load default
-        self.current_table = None
-        self.switch_table("Books")
 
     def switch_table(self, table_name):
         """Loads and displays data for a specified table."""
@@ -185,7 +187,9 @@ class LibraryApp(customtkinter.CTk):
             command=lambda: self.switch_table(self.current_table)
         )
         clear_button.pack(side="left", padx=5)
+    #endregion
 
+    #region CRUD OPERATIONS
     def create_record(self):
         """Opens a new form window for creating a record for the current table."""
         if not self.current_table:
@@ -317,21 +321,34 @@ class LibraryApp(customtkinter.CTk):
         )
         submit_btn.pack(pady=20)
 
-    def show_error_message(self, window, message):
-        """Displays an error message in the form window"""
-        error_frame = customtkinter.CTkFrame(window, fg_color="#e74c3c")
-        error_frame.pack(fill="x", padx=20, pady=5)
-        
-        error_label = customtkinter.CTkLabel(
-            error_frame,
-            text=message,
-            text_color="white",
-            wraplength=350
-        )
-        error_label.pack(pady=10)
-        
-        # Auto-dismiss after 3 seconds
-        window.after(3000, error_frame.destroy)
+    def delete_record(self):
+        """Handles record deletion for the current table."""
+        if not self.current_table:
+            print("No table selected.")
+            return
+
+        selected_record = self.get_selected_record()
+        if not selected_record:
+            print("No record selected for deletion.")
+            return
+
+        try:
+            # Get the columns for the current table
+            columns, _ = fetch_all_data(self.current_table)
+            # Use the first column as the primary key
+            primary_key_column = columns[0]
+            primary_key_value = selected_record[0]
+            
+            # Create the WHERE clause using the actual column name
+            condition = f"{primary_key_column} = {primary_key_value}"
+            
+            # Perform the deletion
+            delete_data(self.current_table, condition)
+            self.switch_table(self.current_table)
+            print("Record deleted successfully!")
+            
+        except Exception as e:
+            print(f"Failed to delete record: {e}")
 
     def submit_create_form(self, entry_widgets, form_window):
         """Handles form submission and data insertion."""
@@ -406,36 +423,9 @@ class LibraryApp(customtkinter.CTk):
             # Show error message in the form window
             error_label = customtkinter.CTkLabel(window, text=f"Failed to update record: {e}", fg_color="red")
             error_label.grid(row=len(form_entries) + 1, column=0, columnspan=2)
+    #endregion
 
-    def delete_record(self):
-        """Handles record deletion for the current table."""
-        if not self.current_table:
-            print("No table selected.")
-            return
-
-        selected_record = self.get_selected_record()
-        if not selected_record:
-            print("No record selected for deletion.")
-            return
-
-        try:
-            # Get the columns for the current table
-            columns, _ = fetch_all_data(self.current_table)
-            # Use the first column as the primary key
-            primary_key_column = columns[0]
-            primary_key_value = selected_record[0]
-            
-            # Create the WHERE clause using the actual column name
-            condition = f"{primary_key_column} = {primary_key_value}"
-            
-            # Perform the deletion
-            delete_data(self.current_table, condition)
-            self.switch_table(self.current_table)
-            print("Record deleted successfully!")
-            
-        except Exception as e:
-            print(f"Failed to delete record: {e}")
-
+    #region UTILITY METHODS
     def get_selected_record(self):
         """Retrieves the currently selected record from the Treeview table."""
         for widget in self.main_frame.winfo_children():
@@ -475,3 +465,20 @@ class LibraryApp(customtkinter.CTk):
         if filtered_data:
             table_frame = create_table_display(self.main_frame, filtered_data, columns)
             table_frame.pack(fill="both", expand=True)
+
+    def show_error_message(self, window, message):
+        """Displays an error message in the form window"""
+        error_frame = customtkinter.CTkFrame(window, fg_color="#e74c3c")
+        error_frame.pack(fill="x", padx=20, pady=5)
+        
+        error_label = customtkinter.CTkLabel(
+            error_frame,
+            text=message,
+            text_color="white",
+            wraplength=350
+        )
+        error_label.pack(pady=10)
+        
+        # Auto-dismiss after 3 seconds
+        window.after(3000, error_frame.destroy)
+    #endregion
