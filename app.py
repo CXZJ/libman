@@ -9,11 +9,24 @@ class LibraryApp(customtkinter.CTk):
         self.title("Library Management System")
         self.geometry("1200x600")
 
+        # Define button colors
+        self.BUTTON_NORMAL_COLOR = "#2980b9"    # Normal blue color
+        self.BUTTON_SELECTED_COLOR = "#1abc9c"   # Highlighted teal color
+
+        # Configure grid weights for proper resizing
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)  # Main frame gets more space
+        self.grid_columnconfigure(0, weight=0)  # Sidebar doesn't need to expand
+
         # Sidebar for table navigation and CRUD buttons
         self.sidebar_frame = customtkinter.CTkFrame(self, width=250, corner_radius=10, fg_color="#2c3e50")
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        
+        # Main frame with proper expansion
         self.main_frame = customtkinter.CTkFrame(self)
-        self.main_frame.grid(row=0, column=1, sticky="nsew")
+        self.main_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+        self.main_frame.grid_rowconfigure(1, weight=1)  # Row for table
+        self.main_frame.grid_columnconfigure(0, weight=1)  # Column for table
 
         # Sidebar buttons for switching between tables
         table_names = ["Admins", "Members", "Publishers", "Authors", "Genres", "Books", "Loans", "Fines", "Reservations"]
@@ -21,7 +34,7 @@ class LibraryApp(customtkinter.CTk):
         for idx, table in enumerate(table_names):
             btn = customtkinter.CTkButton(
                 self.sidebar_frame, text=table, height=40, corner_radius=5, 
-                command=lambda t=table: self.load_table_data(t), fg_color="#2980b9"
+                command=lambda t=table: self.switch_table(t), fg_color=self.BUTTON_NORMAL_COLOR
             )
             btn.grid(row=idx, column=0, padx=10, pady=5, sticky="ew")
             self.table_buttons[table] = btn
@@ -46,6 +59,18 @@ class LibraryApp(customtkinter.CTk):
         # Load default table
         self.load_table_data("Books")
 
+    def switch_table(self, table_name):
+        """Switches to the selected table and updates button highlighting"""
+        # Reset all buttons to normal color
+        for btn in self.table_buttons.values():
+            btn.configure(fg_color=self.BUTTON_NORMAL_COLOR)
+        
+        # Highlight the selected button
+        self.table_buttons[table_name].configure(fg_color=self.BUTTON_SELECTED_COLOR)
+        
+        # Load the table data
+        self.load_table_data(table_name)
+
     def load_table_data(self, table_name):
         """Loads and displays data for a specified table."""
         self.current_table = table_name
@@ -62,6 +87,11 @@ class LibraryApp(customtkinter.CTk):
         if data:
             table_frame = create_table_display(self.main_frame, data, columns)
             table_frame.pack(fill="both", expand=True)
+
+        # Update button highlighting
+        for btn in self.table_buttons.values():
+            btn.configure(fg_color=self.BUTTON_NORMAL_COLOR)
+        self.table_buttons[table_name].configure(fg_color=self.BUTTON_SELECTED_COLOR)
 
     def create_search_bar(self):
         """Creates the search bar at the top of the main frame"""
