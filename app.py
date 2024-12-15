@@ -69,7 +69,7 @@ class LibraryApp(customtkinter.CTk):
         table_categories = {
             "Users": ["Admins", "Members"],
             "Content": ["Books", "Authors", "Publishers", "Genres"],
-            "Transactions": ["Loans", "Reservations", "Fines"]
+            "Transactions": ["Loans", "Fines"]
         }
 
         current_row = 2
@@ -111,7 +111,7 @@ class LibraryApp(customtkinter.CTk):
 
         # CRUD Buttons
         crud_buttons = [
-            ("Create", self.create_record, "#27ae60", "#2ecc71"),
+            ("Insert", self.create_record, "#27ae60", "#2ecc71"),
             ("Update", self.update_record, "#f39c12", "#f1c40f"),
             ("Delete", self.delete_record, "#e74c3c", "#c0392b")
         ]
@@ -196,7 +196,7 @@ class LibraryApp(customtkinter.CTk):
             return
 
         form_window = customtkinter.CTkToplevel(self)
-        form_window.title(f"Create New {self.current_table}")
+        form_window.title(f"Insert New {self.current_table}")
         form_window.geometry("500x600")
 
         # Create main container frame with padding
@@ -206,7 +206,7 @@ class LibraryApp(customtkinter.CTk):
         # Title
         title_label = customtkinter.CTkLabel(
             main_frame,
-            text=f"Create New {self.current_table}",
+            text=f"Insert New {self.current_table}",
             font=customtkinter.CTkFont(size=20, weight="bold")
         )
         title_label.pack(pady=(0, 20))
@@ -245,7 +245,7 @@ class LibraryApp(customtkinter.CTk):
         # Submit button
         submit_btn = customtkinter.CTkButton(
             main_frame,
-            text="Create Record",
+            text="Insert Record",
             command=lambda: self.submit_create_form(entry_widgets, form_window),
             fg_color="#27ae60",
             hover_color="#2ecc71",
