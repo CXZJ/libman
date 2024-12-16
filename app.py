@@ -414,15 +414,29 @@ class LibraryApp(customtkinter.CTk):
             update_data(self.current_table, columns, values[1:], condition)
             
             # Show success message
-            success_label = customtkinter.CTkLabel(window, text="Record updated successfully!", fg_color="green")
-            success_label.grid(row=len(form_entries) + 1, column=0, columnspan=2)
+            success_frame = customtkinter.CTkFrame(window)
+            success_frame.pack(fill="x", padx=20, pady=5)
+            success_label = customtkinter.CTkLabel(
+                success_frame,
+                text="Record updated successfully!",
+                text_color="green"
+            )
+            success_label.pack(pady=5)
+            
             window.after(1500, window.destroy)
             self.switch_table(self.current_table)
             
         except Exception as e:
-            # Show error message in the form window
-            error_label = customtkinter.CTkLabel(window, text=f"Failed to update record: {e}", fg_color="red")
-            error_label.grid(row=len(form_entries) + 1, column=0, columnspan=2)
+            # Show error message
+            error_frame = customtkinter.CTkFrame(window)
+            error_frame.pack(fill="x", padx=20, pady=5)
+            error_label = customtkinter.CTkLabel(
+                error_frame,
+                text=f"Failed to update record: {e}",
+                text_color="red",
+                wraplength=350
+            )
+            error_label.pack(pady=5)
     #endregion
 
     #region UTILITY METHODS
